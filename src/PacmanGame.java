@@ -40,10 +40,10 @@ public class PacmanGame {
 
     private Timer enemyTimer; // 적 이동 타이머를 클래스 변수로 변경
 
-    private static final int FIELD_ROW_SIZE = 28;
-    private static final int FIELD_COL_SIZE = 36;
-    private static final int FRAME_WIDTH = 1600;
-    private static final int FRAME_HEIGHT = 1300;
+    private static final int FIELD_ROW_SIZE = 11;
+    private static final int FIELD_COL_SIZE = 20;
+    private static final int FRAME_WIDTH = 1000;
+    private static final int FRAME_HEIGHT = 550;
 
     public static void main(String[] args) {
         new PacmanGame().startGame();
@@ -75,11 +75,13 @@ public class PacmanGame {
         
         // 게임 변수 초기화
         random = new Random();
-        pacmanRow = 23;
-        pacmanCol = 18;
-        enemyRow = 14;
-        enemyCol = 18;
-        numOfDots = 0; // 초기화 후에 실제 점의 개수를 셀 것입니다.
+        pacmanRow = 9;
+        pacmanCol = 10;
+        
+        enemyRow = 5;
+        enemyCol = 9;
+        
+        numOfDots = 104; // 초기화되는 점의 개수
         dotsEaten = 0;
         startDelay = 2;
         tempState = "empty";
@@ -91,11 +93,12 @@ public class PacmanGame {
         gridState = new String[FIELD_ROW_SIZE][FIELD_COL_SIZE]; // 그리드 상태 배열 초기화
         for (int i = 0; i < FIELD_ROW_SIZE; i++) {
             for (int j = 0; j < FIELD_COL_SIZE; j++) {
-                grid[i][j] = new JLabel(emptyIcon);
-                gridState[i][j] = "empty"; // 초기 상태를 empty로 설정
+                grid[i][j] = new JLabel(smallDotIcon);
+                gridState[i][j] = "dot"; // 초기 상태를 empty로 설정
             }
         }
 
+        
         // 게임 패널 설정
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(FIELD_ROW_SIZE, FIELD_COL_SIZE));
@@ -110,7 +113,7 @@ public class PacmanGame {
 
         // 점수 라벨 초기화 및 상단에 추가
         scoreLabel = new JLabel("점수: 0");
-        scoreLabel.setForeground(Color.WHITE);
+        scoreLabel.setForeground(Color.BLACK);
         frame.add(scoreLabel, BorderLayout.NORTH);
 
         // 오른쪽 패널 생성 및 총알 라벨 추가
@@ -142,7 +145,7 @@ public class PacmanGame {
         });
 
         // 적의 이동을 위한 타이머 설정
-        enemyTimer = new Timer(600, new ActionListener() {
+        enemyTimer = new Timer(250, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 handleEnemyMovement();
@@ -160,25 +163,151 @@ public class PacmanGame {
             }
         });
     }
-
+    	// 블럭 배치
     private void initializeGameGrid() {
-        // 벽과 작은 점 배치 (예시로 임의의 패턴을 생성합니다)
         for (int i = 0; i < FIELD_ROW_SIZE; i++) {
             for (int j = 0; j < FIELD_COL_SIZE; j++) {
                 if (i == 0 || i == FIELD_ROW_SIZE - 1 || j == 0 || j == FIELD_COL_SIZE - 1) {
                     grid[i][j].setIcon(wallIcon); // 외곽 벽
                     gridState[i][j] = "wall";
-                } else if ((i % 2 == 0 && j % 2 == 0)) {
-                    grid[i][j].setIcon(wallIcon); // 내부 벽
-                    gridState[i][j] = "wall";
-                } else {
-                    grid[i][j].setIcon(smallDotIcon); // 작은 점
-                    gridState[i][j] = "dot";
-                    numOfDots++;
-                }
+                }                 
             }
         }
-
+        
+        grid[2][2].setIcon(wallIcon); // 내부 벽
+        gridState[2][2] = "wall";        
+        grid[3][2].setIcon(wallIcon); // 내부 벽
+        gridState[3][2] = "wall";        
+        grid[4][2].setIcon(wallIcon); // 내부 벽
+        gridState[4][2] = "wall";       
+        grid[6][2].setIcon(wallIcon); // 내부 벽
+        gridState[6][2] = "wall";        
+        grid[7][2].setIcon(wallIcon); // 내부 벽
+        gridState[7][2] = "wall";       
+        grid[8][2].setIcon(wallIcon); // 내부 벽
+        gridState[8][2] = "wall";
+        
+        
+        grid[2][3].setIcon(wallIcon); // 내부 벽
+        gridState[2][3] = "wall";        
+        grid[8][3].setIcon(wallIcon); // 내부 벽
+        gridState[8][3] = "wall";
+        
+        
+        grid[4][4].setIcon(wallIcon); // 내부 벽
+        gridState[4][4] = "wall";       
+        grid[6][4].setIcon(wallIcon); // 내부 벽
+        gridState[6][4] = "wall";
+        
+        
+        grid[4][5].setIcon(wallIcon); // 내부 벽
+        gridState[4][5] = "wall";      
+        grid[6][5].setIcon(wallIcon); // 내부 벽
+        gridState[6][5] = "wall";       
+        grid[1][5].setIcon(wallIcon); // 내부 벽
+        gridState[1][5] = "wall";       
+        grid[2][5].setIcon(wallIcon); // 내부 벽
+        gridState[2][5] = "wall";
+        grid[9][5].setIcon(wallIcon); // 내부 벽
+        gridState[9][5] = "wall";
+        grid[8][5].setIcon(wallIcon); // 내부 벽
+        gridState[8][5] = "wall";
+        
+        
+        grid[2][12].setIcon(wallIcon); // 내부 벽
+        gridState[2][12] = "wall";
+        grid[2][7].setIcon(wallIcon); // 내부 벽
+        gridState[2][7] = "wall";
+        grid[2][8].setIcon(wallIcon); // 내부 벽
+        gridState[2][8] = "wall";
+        grid[2][9].setIcon(wallIcon); // 내부 벽
+        gridState[2][9] = "wall";
+        grid[2][10].setIcon(wallIcon); // 내부 벽
+        gridState[2][10] = "wall";
+        grid[2][11].setIcon(wallIcon); // 내부 벽
+        gridState[2][11] = "wall";
+        
+        
+        grid[8][12].setIcon(wallIcon); // 내부 벽
+        gridState[8][12] = "wall";
+        grid[8][7].setIcon(wallIcon); // 내부 벽
+        gridState[8][7] = "wall";
+        grid[8][8].setIcon(wallIcon); // 내부 벽
+        gridState[8][8] = "wall";
+        grid[8][9].setIcon(wallIcon); // 내부 벽
+        gridState[8][9] = "wall";
+        grid[8][10].setIcon(wallIcon); // 내부 벽
+        gridState[8][10] = "wall";
+        grid[8][11].setIcon(wallIcon); // 내부 벽
+        gridState[8][11] = "wall";
+        
+        
+        grid[6][12].setIcon(wallIcon); // 내부 벽
+        gridState[6][12] = "wall";
+        grid[6][7].setIcon(wallIcon); // 내부 벽
+        gridState[6][7] = "wall";
+        grid[6][8].setIcon(wallIcon); // 내부 벽
+        gridState[6][8] = "wall";
+        grid[6][9].setIcon(wallIcon); // 내부 벽
+        gridState[6][9] = "wall";
+        grid[6][10].setIcon(wallIcon); // 내부 벽
+        gridState[6][10] = "wall";
+        grid[6][11].setIcon(wallIcon); // 내부 벽
+        gridState[6][11] = "wall";
+        
+        grid[5][12].setIcon(wallIcon); // 내부 벽
+        gridState[5][12] = "wall";
+        grid[5][7].setIcon(wallIcon); // 내부 벽
+        gridState[5][7] = "wall";
+        grid[4][12].setIcon(wallIcon); // 내부 벽
+        gridState[4][12] = "wall";
+        grid[4][7].setIcon(wallIcon); // 내부 벽
+        gridState[4][7] = "wall";
+        grid[4][8].setIcon(wallIcon); // 내부 벽
+        gridState[4][8] = "wall";        
+        grid[4][11].setIcon(wallIcon); // 내부 벽
+        gridState[4][11] = "wall";
+        
+        
+        grid[4][15].setIcon(wallIcon); // 내부 벽
+        gridState[4][15] = "wall";       
+        grid[6][15].setIcon(wallIcon); // 내부 벽
+        gridState[6][15] = "wall";
+        
+        
+        grid[4][14].setIcon(wallIcon); // 내부 벽
+        gridState[4][14] = "wall";      
+        grid[6][14].setIcon(wallIcon); // 내부 벽
+        gridState[6][14] = "wall";       
+        grid[1][14].setIcon(wallIcon); // 내부 벽
+        gridState[1][14] = "wall";       
+        grid[2][14].setIcon(wallIcon); // 내부 벽
+        gridState[2][14] = "wall";
+        grid[9][14].setIcon(wallIcon); // 내부 벽
+        gridState[9][14] = "wall";
+        grid[8][14].setIcon(wallIcon); // 내부 벽
+        gridState[8][14] = "wall";
+        
+        
+        grid[2][17].setIcon(wallIcon); // 내부 벽
+        gridState[2][17] = "wall";        
+        grid[3][17].setIcon(wallIcon); // 내부 벽
+        gridState[3][17] = "wall";        
+        grid[4][17].setIcon(wallIcon); // 내부 벽
+        gridState[4][17] = "wall";       
+        grid[6][17].setIcon(wallIcon); // 내부 벽
+        gridState[6][17] = "wall";        
+        grid[7][17].setIcon(wallIcon); // 내부 벽
+        gridState[7][17] = "wall";       
+        grid[8][17].setIcon(wallIcon); // 내부 벽
+        gridState[8][17] = "wall";
+        
+        
+        grid[2][16].setIcon(wallIcon); // 내부 벽
+        gridState[2][16] = "wall";        
+        grid[8][16].setIcon(wallIcon); // 내부 벽
+        gridState[8][16] = "wall";
+        
         // 팩맨 배치
         grid[pacmanRow][pacmanCol].setIcon(pacmanRightIcon);
         gridState[pacmanRow][pacmanCol] = "pacman";
