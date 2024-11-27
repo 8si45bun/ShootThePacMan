@@ -111,7 +111,7 @@ public class PacmanClient {
         pacmanLeftIcon = new ImageIcon("pacman_left.gif");
         pacmanRightIcon = new ImageIcon("pacman_right.gif");
         emptyIcon = new ImageIcon("empty.png");
-        bulletIcon = new ImageIcon("redBullet.png");
+        bulletIcon = new ImageIcon("yellowBullet.png");
         extraLifeIcon = new ImageIcon("heart.png");
         invincibleIcon = new ImageIcon("Super.png");
         freezeEnemyIcon = new ImageIcon("ICE.png");
