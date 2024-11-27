@@ -14,12 +14,19 @@ public class PacmanClient {
     private ImageIcon smallDotIcon;
     private ImageIcon wallIcon;
     private ImageIcon enemyIcon;
-    private ImageIcon pacmanUpIcon;
-    private ImageIcon pacmanDownIcon;
-    private ImageIcon pacmanLeftIcon;
-    private ImageIcon pacmanRightIcon;
+    private ImageIcon yellowPacmanUpIcon;
+    private ImageIcon yellowPacmanDownIcon;
+    private ImageIcon yellowPacmanLeftIcon;
+    private ImageIcon yellowPacmanRightIcon;
+    
+    private ImageIcon bluePacmanUpIcon;
+    private ImageIcon bluePacmanDownIcon;
+    private ImageIcon bluePacmanLeftIcon;
+    private ImageIcon bluePacmanRightIcon;
+    
     private ImageIcon emptyIcon;
-    private ImageIcon bulletIcon;
+    private ImageIcon yellowBulletIcon;
+    private ImageIcon blueBulletIcon;
     private ImageIcon extraLifeIcon;
     private ImageIcon invincibleIcon;
     private ImageIcon freezeEnemyIcon;
@@ -106,12 +113,20 @@ public class PacmanClient {
         smallDotIcon = new ImageIcon("smallDot.png");
         wallIcon = new ImageIcon("wall.png");
         enemyIcon = new ImageIcon("ghosts.gif");
-        pacmanUpIcon = new ImageIcon("pacman_up.gif");
-        pacmanDownIcon = new ImageIcon("pacman_down.gif");
-        pacmanLeftIcon = new ImageIcon("pacman_left.gif");
-        pacmanRightIcon = new ImageIcon("pacman_right.gif");
+        
+        bluePacmanUpIcon = new ImageIcon("blue_pacman_up.gif");
+        bluePacmanDownIcon = new ImageIcon("blue_pacman_down.gif");
+        bluePacmanLeftIcon = new ImageIcon("blue_pacman_left.gif");
+        bluePacmanRightIcon = new ImageIcon("blue_pacman_right.gif");
+        
+        yellowPacmanUpIcon = new ImageIcon("pacman_up.gif");
+        yellowPacmanDownIcon = new ImageIcon("pacman_down.gif");
+        yellowPacmanLeftIcon = new ImageIcon("pacman_left.gif");
+        yellowPacmanRightIcon = new ImageIcon("pacman_right.gif");
+        
         emptyIcon = new ImageIcon("empty.png");
-        bulletIcon = new ImageIcon("yellowBullet.png");
+        yellowBulletIcon = new ImageIcon("yellowBullet.png");
+        blueBulletIcon = new ImageIcon("blueBullet.png");
         extraLifeIcon = new ImageIcon("heart.png");
         invincibleIcon = new ImageIcon("Super.png");
         freezeEnemyIcon = new ImageIcon("ICE.png");
@@ -211,6 +226,7 @@ public class PacmanClient {
     }
 
     // 블럭 배치 (내부 벽 설정은 기존 코드와 동일하므로 생략)
+    
     private void initializeGameGrid() {
         // 외곽 벽 설정
         for (int i = 0; i < FIELD_ROW_SIZE; i++) {
@@ -226,12 +242,12 @@ public class PacmanClient {
         // ... (기존 내부 벽 설정 코드)
 
         // 팩맨 배치
-        grid[pacmanRow][pacmanCol].setIcon(pacmanRightIcon);
+        grid[pacmanRow][pacmanCol].setIcon(yellowPacmanRightIcon);
         gridState[pacmanRow][pacmanCol] = "pacman" + playerId;
 
         // 팩맨 시작 위치의 점 제거
         if (gridState[pacmanRow][pacmanCol].equals("dot")) {
-            grid[pacmanRow][pacmanCol].setIcon(pacmanRightIcon);
+            grid[pacmanRow][pacmanCol].setIcon(yellowPacmanRightIcon);
             gridState[pacmanRow][pacmanCol] = "pacman" + playerId;
             numOfDots--;
         }
@@ -241,23 +257,23 @@ public class PacmanClient {
         int key = e.getKeyCode();
         int newRow = pacmanRow;
         int newCol = pacmanCol;
-        ImageIcon pacmanCurrentIcon = pacmanRightIcon;
+        ImageIcon pacmanCurrentIcon = yellowPacmanRightIcon;
 
         // 방향 결정 및 아이콘 업데이트
         if (key == KeyEvent.VK_UP) {
-            pacmanCurrentIcon = pacmanUpIcon;
+            pacmanCurrentIcon = yellowPacmanUpIcon;
             pacmanDirection = 1; // 위쪽
             newRow = pacmanRow - 1;
         } else if (key == KeyEvent.VK_DOWN) {
-            pacmanCurrentIcon = pacmanDownIcon;
+            pacmanCurrentIcon = yellowPacmanDownIcon;
             pacmanDirection = 2; // 아래쪽
             newRow = pacmanRow + 1;
         } else if (key == KeyEvent.VK_LEFT) {
-            pacmanCurrentIcon = pacmanLeftIcon;
+            pacmanCurrentIcon = yellowPacmanLeftIcon;
             pacmanDirection = 3; // 왼쪽
             newCol = pacmanCol - 1;
         } else if (key == KeyEvent.VK_RIGHT) {
-            pacmanCurrentIcon = pacmanRightIcon;
+            pacmanCurrentIcon = yellowPacmanRightIcon;
             pacmanDirection = 4; // 오른쪽
             newCol = pacmanCol + 1;
         }
@@ -365,7 +381,7 @@ public class PacmanClient {
                         return;
                     } else if (nextState.equals("empty") || nextState.equals("dot")) {
                         // 총알을 다음 위치로 이동
-                        grid[nextRow][nextCol].setIcon(bulletIcon);
+                        grid[nextRow][nextCol].setIcon(yellowBulletIcon);
                         gridState[nextRow][nextCol] = "bullet";
 
                         currentRow = nextRow;
@@ -420,17 +436,17 @@ public class PacmanClient {
             case "pacman1":
                 switch (pacmanDirection) {
                     case 1:
-                        return pacmanUpIcon;
+                        return yellowPacmanUpIcon;
                     case 2:
-                        return pacmanDownIcon;
+                        return yellowPacmanDownIcon;
                     case 3:
-                        return pacmanLeftIcon;
+                        return yellowPacmanLeftIcon;
                     case 4:
                     default:
-                        return pacmanRightIcon;
+                        return yellowPacmanRightIcon;
                 }
             case "bullet":
-                return bulletIcon;
+                return yellowBulletIcon;
             case "extraLife":
                 return extraLifeIcon;
             case "invincible":
@@ -496,7 +512,7 @@ public class PacmanClient {
         // 팩맨 위치 초기화
         pacmanRow = (playerId == 0) ? 9 : 1;
         pacmanCol = 10;
-        grid[pacmanRow][pacmanCol].setIcon(pacmanRightIcon);
+        grid[pacmanRow][pacmanCol].setIcon(yellowPacmanRightIcon);
         gridState[pacmanRow][pacmanCol] = "pacman" + playerId;
         pacmanDirection = 4;
     }
@@ -543,19 +559,19 @@ public class PacmanClient {
         }
 
         // 새로운 위치에 다른 플레이어 배치
-        ImageIcon otherPacmanIcon = pacmanRightIcon;
+        ImageIcon otherPacmanIcon = bluePacmanRightIcon;
         switch (direction) {
             case 1:
-                otherPacmanIcon = pacmanUpIcon;
+                otherPacmanIcon = bluePacmanUpIcon;
                 break;
             case 2:
-                otherPacmanIcon = pacmanDownIcon;
+                otherPacmanIcon = bluePacmanDownIcon;
                 break;
             case 3:
-                otherPacmanIcon = pacmanLeftIcon;
+                otherPacmanIcon = bluePacmanLeftIcon;
                 break;
             case 4:
-                otherPacmanIcon = pacmanRightIcon;
+                otherPacmanIcon = bluePacmanRightIcon;
                 break;
         }
 
