@@ -2,6 +2,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.event.*;
 import javax.swing.*;
 import java.io.*;
@@ -74,41 +75,161 @@ public class PacmanClient {
     // 다른 플레이어의 총알을 추적하기 위한 리스트
     private List<Bullet> otherBullets = Collections.synchronizedList(new ArrayList<>());
 
+    // 로비 GUI
+    private Lobby lobby;
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new PacmanClient().startGame());
+        SwingUtilities.invokeLater(() -> new PacmanClient().start());
     }
 
-    public void startGame() {
-        try {
-            // 서버에 연결
-            socket = new Socket("localhost", 5000);
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintWriter(socket.getOutputStream(), true);
+    public void start() {
+        lobby = new Lobby();
+        lobby.showLobby();
+    }
 
-            // 서버로부터 플레이어 ID 수신
-            String response = in.readLine();
-            if (response != null && response.startsWith("PLAYER_ID")) {
-                playerId = Integer.parseInt(response.split(" ")[1]);
-                System.out.println("Player ID: " + playerId);
-            } else if (response != null && response.equals("SERVER_FULL")) {
-                JOptionPane.showMessageDialog(null, "서버가 가득 찼습니다. 나중에 다시 시도해주세요.", "연결 실패", JOptionPane.ERROR_MESSAGE);
-                System.exit(0);
-            } else {
-                JOptionPane.showMessageDialog(null, "서버로부터 플레이어 ID를 받지 못했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+    // 로비 클래스
+    private class Lobby {
+        private JFrame lobbyFrame;
+        private JTextField roomNameField;
+        private JButton createRoomButton;
+        private JButton joinRoomButton;
+        private JButton refreshRoomsButton;
+        private JList<String> roomsList;
+        private DefaultListModel<String> roomsListModel;
+
+        public Lobby() {
+            lobbyFrame = new JFrame("로비");
+            lobbyFrame.setSize(400, 400);
+            lobbyFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            lobbyFrame.setLayout(new BorderLayout());
+
+            // 상단 패널: 방 생성
+            JPanel topPanel = new JPanel();
+            topPanel.setLayout(new BorderLayout());
+            roomNameField = new JTextField();
+            createRoomButton = new JButton("방 생성");
+            topPanel.add(new JLabel("방 이름:"), BorderLayout.WEST);
+            topPanel.add(roomNameField, BorderLayout.CENTER);
+            topPanel.add(createRoomButton, BorderLayout.EAST);
+            lobbyFrame.add(topPanel, BorderLayout.NORTH);
+
+            // 중앙 패널: 방 목록
+            roomsListModel = new DefaultListModel<>();
+            roomsList = new JList<>(roomsListModel);
+            JScrollPane scrollPane = new JScrollPane(roomsList);
+            lobbyFrame.add(scrollPane, BorderLayout.CENTER);
+
+            // 하단 패널: 방 참가 및 새로고침
+            JPanel bottomPanel = new JPanel();
+            bottomPanel.setLayout(new GridLayout(1, 2));
+            joinRoomButton = new JButton("방 참가");
+            refreshRoomsButton = new JButton("새로고침");
+            bottomPanel.add(joinRoomButton);
+            bottomPanel.add(refreshRoomsButton);
+            lobbyFrame.add(bottomPanel, BorderLayout.SOUTH);
+
+            // 이벤트 핸들러
+            createRoomButton.addActionListener(e -> createRoom());
+            joinRoomButton.addActionListener(e -> joinRoom());
+            refreshRoomsButton.addActionListener(e -> fetchRooms());
+        }
+
+        public void showLobby() {
+            lobbyFrame.setVisible(true);
+            connectToServer();
+        }
+
+        private void connectToServer() {
+            try {
+                // 서버에 연결
+                socket = new Socket("localhost", 5000);
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                out = new PrintWriter(socket.getOutputStream(), true);
+
+                // 서버로부터 플레이어 ID 수신
+                String response = in.readLine();
+                if (response != null && response.startsWith("PLAYER_ID")) {
+                    playerId = Integer.parseInt(response.split(" ")[1]);
+                    System.out.println("Player ID: " + playerId);
+                } else if (response != null && response.equals("SERVER_FULL")) {
+                    JOptionPane.showMessageDialog(lobbyFrame, "서버가 가득 찼습니다. 나중에 다시 시도해주세요.", "연결 실패", JOptionPane.ERROR_MESSAGE);
+                    socket.close();
+                    System.exit(0);
+                } else {
+                    JOptionPane.showMessageDialog(lobbyFrame, "서버로부터 플레이어 ID를 받지 못했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                    socket.close();
+                    System.exit(0);
+                }
+
+                // 서버 메시지 수신 시작
+                new Thread(new ServerListener()).start();
+
+                // 초기 방 목록 요청
+                fetchRooms();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(lobbyFrame, "서버에 연결할 수 없습니다.", "연결 오류", JOptionPane.ERROR_MESSAGE);
                 System.exit(0);
             }
-
-            // 게임 초기화
-            initializeGame();
-
-            // 서버 메시지 수신 시작
-            new Thread(new ServerListener()).start();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "서버에 연결할 수 없습니다.", "연결 오류", JOptionPane.ERROR_MESSAGE);
-            System.exit(0);
         }
+
+        private void createRoom() {
+            String roomName = roomNameField.getText().trim();
+            if (roomName.isEmpty()) {
+                JOptionPane.showMessageDialog(lobbyFrame, "방 이름을 입력해주세요.", "오류", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // 서버에 방 생성 요청
+            out.println("CREATE_ROOM " + roomName);
+        }
+
+        private void joinRoom() {
+            String selectedRoom = roomsList.getSelectedValue();
+            if (selectedRoom == null || selectedRoom.isEmpty()) {
+                JOptionPane.showMessageDialog(lobbyFrame, "참가할 방을 선택해주세요.", "오류", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // 서버에 방 참가 요청
+            out.println("JOIN_ROOM " + selectedRoom);
+        }
+
+        private void fetchRooms() {
+            // 서버에 방 목록 요청
+            out.println("GET_ROOMS");
+        }
+
+        // 서버로부터 방 목록을 수신했을 때 호출
+        private void updateRoomsList(List<String> rooms) {
+            SwingUtilities.invokeLater(() -> {
+                roomsListModel.clear();
+                for (String room : rooms) {
+                    roomsListModel.addElement(room);
+                }
+            });
+        }
+
+        // 서버로부터 방 생성 및 참가 성공 메시지를 받았을 때 호출
+        private void onRoomCreatedOrJoined() {
+            SwingUtilities.invokeLater(() -> {
+                lobbyFrame.setVisible(false);
+                startGame(); // 게임 시작
+            });
+        }
+
+        // 서버로부터 오류 메시지를 받았을 때 호출
+        private void onError(String errorMsg) {
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(lobbyFrame, errorMsg, "오류", JOptionPane.ERROR_MESSAGE);
+            });
+        }
+    }
+
+    private void startGame() {
+        initializeGame();
+        frame.setVisible(true);
     }
 
     private void initializeGame() {
@@ -167,12 +288,8 @@ public class PacmanClient {
             }
         }
 
-        // 내부 벽 설정 (필요 시)
-        // 예시:
-        /*
-        grid[5][5].setIcon(wallIcon);
-        gridState[5][5] = "wall";
-        */
+        // 내부 벽 설정
+        addInternalWalls();
 
         // 게임 패널 설정
         JPanel panel = new JPanel();
@@ -202,7 +319,6 @@ public class PacmanClient {
         frame.add(leftPanel, BorderLayout.WEST);
 
         frame.add(panel, BorderLayout.CENTER);
-        frame.setVisible(true);
 
         // 게임 그리드에 요소 초기화
         initializeGameGrid();
@@ -230,48 +346,32 @@ public class PacmanClient {
             // 버튼 클릭 시 게임 종료
             System.exit(0);
         });
+
+        frame.setVisible(true);
     }
 
-    // 아이콘 로드 도우미 메서드 (리소스 폴더 없이 파일 경로 사용)
-    private ImageIcon loadIcon(String path) {
-        File imgFile = new File(path);
-        if (imgFile.exists()) {
-            System.out.println("이미지 로드 성공: " + imgFile.getAbsolutePath());
-            return new ImageIcon(imgFile.getAbsolutePath());
-        } else {
-            System.err.println("이미지 로드 실패: " + path + " (현재 디렉토리: " + new File(".").getAbsolutePath() + ")");
-            return new ImageIcon(); // null 참조 방지를 위해 빈 아이콘 반환
-        }
-    }
+    // 내부 벽을 추가하는 메서드
+    private void addInternalWalls() {
+        // 예시로 내부 벽을 추가 (현재 코드의 내부 벽 부분을 메서드로 분리)
+        int[][] walls = {
+            {2,2},{3,2},{4,2},{6,2},{7,2},{8,2},
+            {2,3},{8,3},
+            {4,4},{6,4},
+            {4,5},{6,5},{1,5},{2,5},{9,5},{8,5},
+            {2,7},{2,8},{2,9},{2,10},{2,11},{2,12},
+            {8,7},{8,8},{8,9},{8,10},{8,11},{8,12},
+            {6,7},{6,8},{6,9},{6,10},{6,11},{6,12},
+            {5,7},{5,12},{4,7},{4,8},{4,11},{4,12},
+            {4,14},{6,14},{1,14},{2,14},{9,14},{8,14},
+            {2,16},{8,16},{2,17},{3,17},{4,17},{6,17},{7,17},{8,17}
+        };
 
-    // 게임 그리드 초기화
-    private void initializeGameGrid() {
-        // 외곽 벽 설정
-        for (int i = 0; i < FIELD_ROW_SIZE; i++) {
-            for (int j = 0; j < FIELD_COL_SIZE; j++) {
-                if (i == 0 || i == FIELD_ROW_SIZE - 1 || j == 0 || j == FIELD_COL_SIZE - 1) {
-                    grid[i][j].setIcon(wallIcon);
-                    gridState[i][j] = "wall";
-                }
-            }
+        for (int[] wall : walls) {
+            int row = wall[0];
+            int col = wall[1];
+            grid[row][col].setIcon(wallIcon);
+            gridState[row][col] = "wall";
         }
-
-        // 내부 벽 설정 (필요 시)
-        // 예시:
-        /*
-        grid[5][5].setIcon(wallIcon);
-        gridState[5][5] = "wall";
-        */
-
-        // Pacman을 그리드에 배치
-        if (gridState[pacmanRow][pacmanCol].equals("dot")) {
-            dotsEaten++;
-            bullets++; // 총알 충전
-            updateScoreLabel();
-            updateBulletsLabel();
-        }
-        grid[pacmanRow][pacmanCol].setIcon(yellowPacmanRightIcon);
-        gridState[pacmanRow][pacmanCol] = "pacman" + playerId;
     }
 
     private void handlePacmanMovement(KeyEvent e) {
@@ -522,6 +622,7 @@ public class PacmanClient {
             String message;
             try {
                 while ((message = in.readLine()) != null) {
+                    System.out.println("서버로부터 수신: " + message);
                     // 서버 메시지 처리
                     if (message.startsWith("MOVE")) {
                         String[] parts = message.split(" ");
@@ -544,7 +645,7 @@ public class PacmanClient {
                         int bulletDirection = Integer.parseInt(parts[4]);
 
                         if (firingPlayerId != playerId) { // 자신의 총알은 재생성하지 않음
-                            moveBullet(bulletRow, bulletCol, bulletDirection, firingPlayerId);
+                            createOtherBullet(firingPlayerId, bulletRow, bulletCol, bulletDirection);
                         }
                     } else if (message.startsWith("WALL_DESTROYED")) { // 벽 파괴 처리
                         String[] parts = message.split(" ");
@@ -585,6 +686,7 @@ public class PacmanClient {
                     } else if (message.equals("START")) {
                         // 게임 시작 신호
                         System.out.println("게임이 시작되었습니다!");
+                        // 추가적으로 게임 시작에 필요한 초기화 작업 수행 가능
                     } else if (message.startsWith("PLAYER_DISCONNECTED")) {
                         // 플레이어 연결 해제 처리
                         String[] parts = message.split(" ");
@@ -595,6 +697,27 @@ public class PacmanClient {
                                 System.exit(0);
                             }
                         }
+                    } else if (message.startsWith("ROOM_LIST")) { // 방 목록 응답 처리
+                        String roomsStr = message.substring("ROOM_LIST".length()).trim();
+                        List<String> rooms = new ArrayList<>();
+                        if (!roomsStr.isEmpty()) {
+                            String[] roomsArray = roomsStr.split(",");
+                            for (String room : roomsArray) {
+                                rooms.add(room.trim());
+                            }
+                        }
+                        lobby.updateRoomsList(rooms);
+                    } else if (message.startsWith("ROOM_CREATED")) { // 방 생성 성공 응답
+                        String roomName = message.substring("ROOM_CREATED".length()).trim();
+                        JOptionPane.showMessageDialog(frame, "방 '" + roomName + "'이(가) 생성되었습니다.", "방 생성 성공", JOptionPane.INFORMATION_MESSAGE);
+                        lobby.onRoomCreatedOrJoined();
+                    } else if (message.startsWith("ROOM_JOINED")) { // 방 참가 성공 응답
+                        String roomName = message.substring("ROOM_JOINED".length()).trim();
+                        JOptionPane.showMessageDialog(frame, "방 '" + roomName + "'에 참가하였습니다.", "방 참가 성공", JOptionPane.INFORMATION_MESSAGE);
+                        lobby.onRoomCreatedOrJoined();
+                    } else if (message.startsWith("ERROR")) { // 오류 메시지 처리
+                        String errorMsg = message.substring("ERROR".length()).trim();
+                        lobby.onError(errorMsg);
                     }
                 }
             } catch (IOException e) {
@@ -843,5 +966,62 @@ public class PacmanClient {
             });
             otherBullets.remove(this);
         }
+    }
+
+    // 아이콘 로드 도우미 메서드 (리소스 폴더 없이 파일 경로 사용)
+    private ImageIcon loadIcon(String path) {
+        File imgFile = new File(path);
+        if (imgFile.exists()) {
+            System.out.println("이미지 로드 성공: " + imgFile.getAbsolutePath());
+            return new ImageIcon(imgFile.getAbsolutePath());
+        } else {
+            System.err.println("이미지 로드 실패: " + path + " (현재 디렉토리: " + new File(".").getAbsolutePath() + ")");
+            return new ImageIcon(); // null 참조 방지를 위해 빈 아이콘 반환
+        }
+    }
+
+    // 게임 그리드 초기화
+    private void initializeGameGrid() {
+        // 외곽 벽 설정
+        for (int i = 0; i < FIELD_ROW_SIZE; i++) {
+            for (int j = 0; j < FIELD_COL_SIZE; j++) {
+                if (i == 0 || i == FIELD_ROW_SIZE - 1 || j == 0 || j == FIELD_COL_SIZE - 1) {
+                    grid[i][j].setIcon(wallIcon);
+                    gridState[i][j] = "wall";
+                }
+            }
+        }
+
+        // 내부 벽 설정 (필요 시)
+        // 예시:
+        /*
+        grid[5][5].setIcon(wallIcon);
+        gridState[5][5] = "wall";
+        */
+
+        // Pacman을 그리드에 배치
+        if (gridState[pacmanRow][pacmanCol].equals("dot")) {
+            dotsEaten++;
+            bullets++; // 총알 충전
+            updateScoreLabel();
+            updateBulletsLabel();
+        }
+        grid[pacmanRow][pacmanCol].setIcon(yellowPacmanRightIcon);
+        gridState[pacmanRow][pacmanCol] = "pacman" + playerId;
+    }
+
+    // 서버로부터 받은 방 목록을 업데이트하는 메서드
+    private void updateRoomsList(List<String> rooms) {
+        // Lobby 클래스 내부에서 호출되므로 여기서는 구현할 필요 없음
+    }
+
+    // 서버로부터 방 생성 및 참가 성공 시 호출되는 메서드
+    private void onRoomCreatedOrJoined() {
+        // Lobby 클래스 내부에서 호출되므로 여기서는 구현할 필요 없음
+    }
+
+    // 서버로부터 오류 메시지를 받았을 때 호출되는 메서드
+    private void onError(String errorMsg) {
+        // Lobby 클래스 내부에서 호출되므로 여기서는 구현할 필요 없음
     }
 }
